@@ -9,6 +9,7 @@ packages = [{include = "disinter"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 fastapi = "^0.85.1"
+requests = "^2.28.1"
 
 
 [tool.poetry.group.dev.dependencies]

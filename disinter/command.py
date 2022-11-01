@@ -1,11 +1,12 @@
-from typing import Dict, Any, NewType, List
+from typing import Any, Dict, List, NewType
 
-from .types import CHANNEL_TYPE
-
+from disinter.types import CHANNEL_TYPE
 
 ApplicationCommandOptionType = NewType("ApplicationCommandOptionType", int)
+
 ApplicationCommandOptionTypeSubCommand = ApplicationCommandOptionType(1)
 ApplicationCommandOptionTypeSubCommandGroup = ApplicationCommandOptionType(2)
+
 ApplicationCommandOptionTypeString = ApplicationCommandOptionType(3)
 ApplicationCommandOptionTypeInteger = ApplicationCommandOptionType(
     4
@@ -25,6 +26,12 @@ ApplicationCommandOptionTypeAttachment = ApplicationCommandOptionType(
 )  # attachment object
 
 
+ApplicationCommandType = NewType("ApplicationCommandType", int)
+ApplicationCommandTypeSlashCommand = ApplicationCommandType(1)  # CHAT_INPUT
+ApplicationCommandTypeUser = ApplicationCommandType(2)  # USER
+ApplicationCommandTypeMessage = ApplicationCommandType(3)  # MESSAGE
+
+
 class ApplicationCommandOptionChoice:
     def __init__(
         self,
@@ -36,7 +43,7 @@ class ApplicationCommandOptionChoice:
         self.value = value
         self.name_localizations = name_localizations
 
-    def to_json(self) -> Dict[str, Any]:
+    def _to_json(self) -> Dict[str, Any]:
         attrs = vars(self)
         json: Dict[str, Any] = {}
         for key, value in attrs.items():
@@ -77,15 +84,27 @@ class ApplicationCommandOption:
         self.max_length = max_length
         self.autocomplete = autocomplete
 
+    def _to_json(self):
+        attrs = vars(self)
+        json: Dict[str, Any] = {}
+        for key, value in attrs.items():
+            if value is not None:
+                # parsing list classes
+                if isinstance(value, list):
+                    list_arr: List[Dict[str, Any]] = []
+                    for i in value:
+                        list_arr.append(i._to_json())
+                    json[key] = list_arr
 
-ApplicationCommandType = NewType("ApplicationCommandType", int)
-ApplicationCommandTypeSlashCommand = ApplicationCommandType(1)
-ApplicationCommandTypeUser = ApplicationCommandType(2)
-ApplicationCommandTypeMessage = ApplicationCommandType(3)
+                    continue
+
+                json[key] = value
+
+        return json
 
 
 class ApplicationCommand:
-    def __call__(
+    def __init__(
         self,
         name: str,
         description: str,
@@ -94,7 +113,9 @@ class ApplicationCommand:
         application_id: str = None,
         name_localizations: Dict[str, str] = None,
         description_localizations: Dict[str, str] = None,
-        options: List[ApplicationCommandOption] = None,
+        options: List[
+            ApplicationCommandOption  # NOTE: options param should not include subcommand or subcommand_group type
+        ] = None,
         default_member_permissions: str = None,
         dm_permission: bool = None,
         version: str = None,
@@ -111,11 +132,20 @@ class ApplicationCommand:
         self.dm_permission = dm_permission
         self.version = version
 
-    def to_json(self) -> Dict[str, Any]:
+    def _to_json(self) -> Dict[str, Any]:
         attrs = vars(self)
         json: Dict[str, Any] = {}
         for key, value in attrs.items():
             if value is not None:
+                # parsing list classes
+                if isinstance(value, list):
+                    list_arr: List[Dict[str, Any]] = []
+                    for i in value:
+                        list_arr.append(i._to_json())
+                    json[key] = list_arr
+
+                    continue
+
                 json[key] = value
 
         return json
