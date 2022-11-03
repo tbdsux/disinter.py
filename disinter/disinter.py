@@ -1,7 +1,9 @@
+import asyncio
 from typing import Any, Awaitable, Callable, Dict, List
 
+from discord_interactions import InteractionResponseType, InteractionType, verify_key
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from starlette.types import Receive, Scope, Send
 
 from disinter.api import DiscordAPI
@@ -12,6 +14,7 @@ from disinter.command import (
     ApplicationCommandOptionTypeSubCommandGroup,
 )
 from disinter.context import InteractionContext
+from disinter.interaction import Interaction
 from disinter.response import DiscordResponse
 from disinter.utils import validate_name
 
@@ -130,12 +133,17 @@ class SlashCommand:
 
 class DisInter(FastAPI):
     def __init__(
-        self, token: str, application_id: int, guilds: List[str] = None
+        self,
+        token: str,
+        application_id: int | str,
+        public_key: str,
+        guilds: List[str] = None,
     ) -> None:
         super().__init__()
 
         self.token = token
         self.application_id = application_id
+        self.public_key = public_key
         self.guilds = guilds
 
         self.api = DiscordAPI(token, application_id)
@@ -148,8 +156,84 @@ class DisInter(FastAPI):
         )
 
     async def __route_handler(self, request: Request):
-        print(self._slash_commands.items())
-        return JSONResponse({"hello": "world"})
+        body = await request.body()
+
+        # Verify request
+        signature = request.headers.get("X-Signature-Ed25519")
+        timestamp = request.headers.get("X-Signature-Timestamp")
+        if (
+            signature is None
+            or timestamp is None
+            or not verify_key(body, signature, timestamp, self.public_key)
+        ):
+            return Response(content="Bad request signature", status_code=401)
+
+        data: Interaction = await request.json()
+
+        # Automatically respond to pings
+        if data["type"] == InteractionType.PING:
+            return JSONResponse({"type": InteractionResponseType.PONG})
+
+        if data["type"] == InteractionType.APPLICATION_COMMAND:
+            # slash / user / message commands
+            command = self._slash_commands.get(data["data"]["name"])
+            if command is not None:
+                # slash command exists
+
+                if len(data["data"]["options"]) > 0:
+                    _opt = data["data"]["options"][0]
+
+                    # check if subcommand group
+                    if _opt["type"] == ApplicationCommandOptionTypeSubCommandGroup:
+                        print("group command")
+                        group = command._command_groups.get(_opt["name"])
+                        if group is not None:
+                            if len(_opt["options"]) > 0:
+                                _sub = _opt["options"][0]
+                                if (
+                                    _sub["type"]
+                                    == ApplicationCommandOptionTypeSubCommand
+                                ):
+                                    subcommand = group._subcommands.get(_sub["name"])
+                                    if subcommand is None:
+                                        return JSONResponse(
+                                            {"error": "Command not defined in app"},
+                                            status_code=400,
+                                        )
+
+                                    ctx = InteractionContext(data, _sub["options"])
+                                    json = await self._execute_command_handler(
+                                        ctx, subcommand._callback
+                                    )
+                                    return JSONResponse(json, status_code=200)
+
+                    # check if subcommand
+                    if _opt["type"] == ApplicationCommandOptionTypeSubCommand:
+                        print("subcommand")
+                        subcommand = command._subcommands.get(_opt["name"])
+                        if subcommand is None:
+                            return JSONResponse(
+                                {"error": "Command not defined in app"}, status_code=400
+                            )
+
+                        ctx = InteractionContext(data, _opt["options"])
+                        json = await self._execute_command_handler(
+                            ctx, subcommand._callback
+                        )
+                        return JSONResponse(json, status_code=200)
+
+                context = InteractionContext(data, data["options"])
+                json = await self._execute_command_handler(context, command._callback)
+                return JSONResponse(json, status_code=200)
+
+    async def _execute_command_handler(
+        self, context: InteractionContext, callback: CALLBACK_FUNCTION
+    ):
+        if asyncio.iscoroutinefunction(callback):
+            output = await callback(context)
+            return output._to_json()
+
+        return callback(context)._to_json()
 
     def slash_command(
         self,
