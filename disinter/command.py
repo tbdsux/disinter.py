@@ -107,8 +107,8 @@ class ApplicationCommand:
     def __init__(
         self,
         name: str,
-        description: str,
-        type: ApplicationCommandType = ApplicationCommandType(1),
+        description: str = None,
+        type: ApplicationCommandType = ApplicationCommandTypeSlashCommand,
         id: str = None,
         application_id: str = None,
         name_localizations: Dict[str, str] = None,

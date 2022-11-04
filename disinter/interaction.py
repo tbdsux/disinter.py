@@ -323,12 +323,12 @@ class Message(BaseObject):
 
 
 class InteractionDataResolved(BaseObject):
-    users: List[User]
-    members: List[Member]
-    roles: List[Role]
-    channels: List[Channel]
-    messages: List[Message]
-    attachments: List[Attachment]
+    users: Dict[SNOWFLAKE, User]
+    members: Dict[SNOWFLAKE, Member]
+    roles: Dict[SNOWFLAKE, Role]
+    channels: Dict[SNOWFLAKE, Channel]
+    messages: Dict[SNOWFLAKE, Message]
+    attachments: Dict[SNOWFLAKE, Attachment]
 
 
 class InteractionDataOption(BaseObject):

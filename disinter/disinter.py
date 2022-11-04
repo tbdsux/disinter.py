@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Awaitable, Callable, Dict, List
+from typing import Any, Awaitable, Callable, Dict, List, Union
 
 from discord_interactions import InteractionResponseType, InteractionType, verify_key
 from fastapi import FastAPI, Request
@@ -12,16 +12,31 @@ from disinter.command import (
     ApplicationCommandOption,
     ApplicationCommandOptionTypeSubCommand,
     ApplicationCommandOptionTypeSubCommandGroup,
+    ApplicationCommandTypeMessage,
+    ApplicationCommandTypeUser,
 )
-from disinter.context import InteractionContext
+from disinter.context import MessageContext, SlashContext, UserContext
 from disinter.interaction import Interaction
 from disinter.response import DiscordResponse
 from disinter.utils import validate_name
 
-CALLBACK_FUNCTION = (
-    Callable[[InteractionContext], DiscordResponse]
-    | Callable[[InteractionContext], Awaitable[DiscordResponse]]
-)
+# slash command function callback type
+SLASH_CALLBACK_FUNCTION = Union[
+    Callable[[SlashContext], DiscordResponse],
+    Callable[[SlashContext], Awaitable[DiscordResponse]],
+]
+
+# user command function callback type
+USER_CALLBACK_FUNCTION = Union[
+    Callable[[UserContext], DiscordResponse],
+    Callable[[UserContext], Awaitable[DiscordResponse]],
+]
+
+# message command function callback type
+MESSAGE_CALLBACK_FUNCTION = Union[
+    Callable[[MessageContext], DiscordResponse],
+    Callable[[MessageContext], Awaitable[DiscordResponse]],
+]
 
 
 class SlashSubgroup:
@@ -37,7 +52,7 @@ class SlashSubgroup:
         description: str,
         options: List[ApplicationCommandOption] = None,
     ):
-        def _subcommand(func: CALLBACK_FUNCTION):
+        def _subcommand(func: SLASH_CALLBACK_FUNCTION):
             subcmd = SlashSubcommand(name, description, func, options)
 
             self._subcommands[name] = subcmd
@@ -60,7 +75,7 @@ class SlashSubcommand:
         self,
         name: str,
         description: str,
-        callback: CALLBACK_FUNCTION,
+        callback: SLASH_CALLBACK_FUNCTION,
         options: List[ApplicationCommandOption] = None,
     ) -> None:
         self.name = name
@@ -84,10 +99,9 @@ class SlashSubcommand:
 
 class SlashCommand:
     def __init__(
-        self, command: ApplicationCommand, callback: CALLBACK_FUNCTION
+        self, command: ApplicationCommand, callback: SLASH_CALLBACK_FUNCTION
     ) -> None:
         self.command = command
-
         self._callback = callback
         self._command_groups: Dict[str, SlashSubgroup] = {}
         self._subcommands: Dict[str, SlashSubcommand] = {}
@@ -122,13 +136,35 @@ class SlashCommand:
         description: str,
         options: List[ApplicationCommandOption] = None,
     ):
-        def _subcommand(func: CALLBACK_FUNCTION):
+        def _subcommand(func: SLASH_CALLBACK_FUNCTION):
             subcmd = SlashSubcommand(name, description, func, options)
 
             self._subcommands[name] = subcmd
             return self._subcommands[name]
 
         return _subcommand
+
+
+class UserCommand:
+    def __init__(
+        self, command: ApplicationCommand, func: USER_CALLBACK_FUNCTION
+    ) -> None:
+        self.command = command
+        self._callback = func
+
+    def _to_json(self):
+        return {"name": self.command.name, "type": self.command.type}
+
+
+class MessageCommand:
+    def __init__(
+        self, command: ApplicationCommand, func: MESSAGE_CALLBACK_FUNCTION
+    ) -> None:
+        self.command = command
+        self._callback = func
+
+    def _to_json(self):
+        return {"name": self.command.name, "type": self.command.type}
 
 
 class DisInter(FastAPI):
@@ -149,6 +185,8 @@ class DisInter(FastAPI):
         self.api = DiscordAPI(token, application_id)
 
         self._slash_commands: Dict[str, SlashCommand] = {}
+        self._user_commands: Dict[str, UserCommand] = {}
+        self._message_commands: Dict[str, MessageCommand] = {}
 
         # add custom api router for interactions
         self.add_route(
@@ -175,17 +213,18 @@ class DisInter(FastAPI):
             return JSONResponse({"type": InteractionResponseType.PONG})
 
         if data["type"] == InteractionType.APPLICATION_COMMAND:
-            # slash / user / message commands
-            command = self._slash_commands.get(data["data"]["name"])
+            command_name = data["data"]["name"]
+
+            # slash commands
+            command = self._slash_commands.get(command_name)
             if command is not None:
                 # slash command exists
 
-                if len(data["data"]["options"]) > 0:
+                if data["data"].get("options") is not None:
                     _opt = data["data"]["options"][0]
 
                     # check if subcommand group
                     if _opt["type"] == ApplicationCommandOptionTypeSubCommandGroup:
-                        print("group command")
                         group = command._command_groups.get(_opt["name"])
                         if group is not None:
                             if len(_opt["options"]) > 0:
@@ -201,7 +240,7 @@ class DisInter(FastAPI):
                                             status_code=400,
                                         )
 
-                                    ctx = InteractionContext(data, _sub["options"])
+                                    ctx = SlashContext(data, _sub["options"])
                                     json = await self._execute_command_handler(
                                         ctx, subcommand._callback
                                     )
@@ -209,25 +248,65 @@ class DisInter(FastAPI):
 
                     # check if subcommand
                     if _opt["type"] == ApplicationCommandOptionTypeSubCommand:
-                        print("subcommand")
                         subcommand = command._subcommands.get(_opt["name"])
                         if subcommand is None:
                             return JSONResponse(
                                 {"error": "Command not defined in app"}, status_code=400
                             )
 
-                        ctx = InteractionContext(data, _opt["options"])
+                        ctx = SlashContext(data, _opt["options"])
                         json = await self._execute_command_handler(
                             ctx, subcommand._callback
                         )
                         return JSONResponse(json, status_code=200)
 
-                context = InteractionContext(data, data["options"])
+                context = SlashContext(data, data["data"].get("options"))
                 json = await self._execute_command_handler(context, command._callback)
                 return JSONResponse(json, status_code=200)
 
+            # user commands
+            user_command = self._user_commands.get(command_name)
+            if user_command is not None:
+                # user command exists
+                context = UserContext(data)
+                json = await self._execute_usercommand_handler(
+                    context, user_command._callback
+                )
+                return JSONResponse(json, status_code=200)
+
+            # message commands
+            message_command = self._message_commands.get(command_name)
+            if message_command is not None:
+                # message command exists
+                context = MessageContext(data)
+                json = await self._execute_messagecommand_handler(
+                    context, message_command._callback
+                )
+                return JSONResponse(json, status_code=200)
+
+            # unknown command in here
+            return JSONResponse({"error": "Unknown type"}, status_code=401)
+
     async def _execute_command_handler(
-        self, context: InteractionContext, callback: CALLBACK_FUNCTION
+        self, context: SlashContext, callback: SLASH_CALLBACK_FUNCTION
+    ):
+        if asyncio.iscoroutinefunction(callback):
+            output = await callback(context)
+            return output._to_json()
+
+        return callback(context)._to_json()
+
+    async def _execute_usercommand_handler(
+        self, context: UserContext, callback: USER_CALLBACK_FUNCTION
+    ):
+        if asyncio.iscoroutinefunction(callback):
+            output = await callback(context)
+            return output._to_json()
+
+        return callback(context)._to_json()
+
+    async def _execute_messagecommand_handler(
+        self, context: MessageContext, callback: MESSAGE_CALLBACK_FUNCTION
     ):
         if asyncio.iscoroutinefunction(callback):
             output = await callback(context)
@@ -245,7 +324,19 @@ class DisInter(FastAPI):
         default_member_permissions: str = None,
         dm_permission: bool = None,
     ):
-        def _command(func: CALLBACK_FUNCTION):
+        """Add a new slash command.
+
+        Args:
+            name (str): Name of the command
+            description (str): Description of the slash
+            name_localizations (Dict[str, str], optional): _description_. Defaults to None.
+            description_localizations (Dict[str, str], optional): _description_. Defaults to None.
+            options (List[ApplicationCommandOption], optional): Slash command options. Defaults to None.
+            default_member_permissions (str, optional): Set of permissions for the command. Defaults to None.
+            dm_permission (bool, optional): Allow command in DMs. Defaults to None.
+        """
+
+        def _command(func: SLASH_CALLBACK_FUNCTION):
             validate_name(name)
 
             cmd = ApplicationCommand(
@@ -257,19 +348,52 @@ class DisInter(FastAPI):
                 default_member_permissions=default_member_permissions,
                 dm_permission=dm_permission,
             )
-
             self._slash_commands[name] = SlashCommand(cmd, func)
-
             return self._slash_commands[name]
+
+        return _command
+
+    def user_command(self, name: str):
+        """Add a new user command.
+
+        Args:
+            name (str): Name of the user command.
+        """
+
+        def _command(func: USER_CALLBACK_FUNCTION):
+            cmd = ApplicationCommand(name=name, type=ApplicationCommandTypeUser)
+            self._user_commands[name] = UserCommand(cmd, func)
+            return self._user_commands[name]
+
+        return _command
+
+    def message_command(self, name: str):
+        """Add a new message command.
+
+        Args:
+            name (str): Name of the message command.
+        """
+
+        def _command(func: MESSAGE_CALLBACK_FUNCTION):
+            cmd = ApplicationCommand(name=name, type=ApplicationCommandTypeMessage)
+            self._message_commands[name] = UserCommand(cmd, func)
+            return self._message_commands[name]
 
         return _command
 
     def _parse_commands(self):
         cmd_json: List[Dict[str, Any]] = []
 
-        for _, cmd in self._slash_commands.items():
+        for cmd in self._slash_commands.values():
             js = cmd._to_json()
+            cmd_json.append(js)
 
+        for cmd in self._user_commands.values():
+            js = cmd._to_json()
+            cmd_json.append(js)
+
+        for cmd in self._message_commands.values():
+            js = cmd._to_json()
             cmd_json.append(js)
 
         return cmd_json
