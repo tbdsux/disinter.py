@@ -7,7 +7,9 @@ from fastapi.responses import JSONResponse, Response
 from starlette.types import Receive, Scope, Send
 
 from disinter.api import DiscordAPI
-from disinter.command import (
+from disinter.context import MessageContext, SlashContext, UserContext
+from disinter.response import DiscordResponse
+from disinter.types.command import (
     ApplicationCommand,
     ApplicationCommandOption,
     ApplicationCommandOptionTypeSubCommand,
@@ -15,9 +17,7 @@ from disinter.command import (
     ApplicationCommandTypeMessage,
     ApplicationCommandTypeUser,
 )
-from disinter.context import MessageContext, SlashContext, UserContext
-from disinter.interaction import Interaction
-from disinter.response import DiscordResponse
+from disinter.types.interaction import Interaction
 from disinter.utils import validate_name
 
 # slash command function callback type
@@ -230,17 +230,17 @@ class DisInter(FastAPI):
                             if len(_opt["options"]) > 0:
                                 _sub = _opt["options"][0]
                                 if (
-                                    _sub["type"]
+                                    _sub["type"]  # type: ignore
                                     == ApplicationCommandOptionTypeSubCommand
                                 ):
-                                    subcommand = group._subcommands.get(_sub["name"])
+                                    subcommand = group._subcommands.get(_sub["name"])  # type: ignore
                                     if subcommand is None:
                                         return JSONResponse(
                                             {"error": "Command not defined in app"},
                                             status_code=400,
                                         )
 
-                                    ctx = SlashContext(data, _sub["options"])
+                                    ctx = SlashContext(data, _sub["options"])  # type: ignore
                                     json = await self._execute_command_handler(
                                         ctx, subcommand._callback
                                     )
@@ -260,17 +260,17 @@ class DisInter(FastAPI):
                         )
                         return JSONResponse(json, status_code=200)
 
-                context = SlashContext(data, data["data"].get("options"))
-                json = await self._execute_command_handler(context, command._callback)
+                slash_ctx = SlashContext(data, data["data"].get("options"))
+                json = await self._execute_command_handler(slash_ctx, command._callback)
                 return JSONResponse(json, status_code=200)
 
             # user commands
             user_command = self._user_commands.get(command_name)
             if user_command is not None:
                 # user command exists
-                context = UserContext(data)
+                user_ctx = UserContext(data)
                 json = await self._execute_usercommand_handler(
-                    context, user_command._callback
+                    user_ctx, user_command._callback
                 )
                 return JSONResponse(json, status_code=200)
 
@@ -278,9 +278,9 @@ class DisInter(FastAPI):
             message_command = self._message_commands.get(command_name)
             if message_command is not None:
                 # message command exists
-                context = MessageContext(data)
+                msg_ctx = MessageContext(data)
                 json = await self._execute_messagecommand_handler(
-                    context, message_command._callback
+                    msg_ctx, message_command._callback
                 )
                 return JSONResponse(json, status_code=200)
 
@@ -294,7 +294,7 @@ class DisInter(FastAPI):
             output = await callback(context)
             return output._to_json()
 
-        return callback(context)._to_json()
+        return callback(context)._to_json()  # type: ignore
 
     async def _execute_usercommand_handler(
         self, context: UserContext, callback: USER_CALLBACK_FUNCTION
@@ -303,7 +303,7 @@ class DisInter(FastAPI):
             output = await callback(context)
             return output._to_json()
 
-        return callback(context)._to_json()
+        return callback(context)._to_json()  # type: ignore
 
     async def _execute_messagecommand_handler(
         self, context: MessageContext, callback: MESSAGE_CALLBACK_FUNCTION
@@ -312,7 +312,7 @@ class DisInter(FastAPI):
             output = await callback(context)
             return output._to_json()
 
-        return callback(context)._to_json()
+        return callback(context)._to_json()  # type: ignore
 
     def slash_command(
         self,
@@ -376,7 +376,7 @@ class DisInter(FastAPI):
 
         def _command(func: MESSAGE_CALLBACK_FUNCTION):
             cmd = ApplicationCommand(name=name, type=ApplicationCommandTypeMessage)
-            self._message_commands[name] = UserCommand(cmd, func)
+            self._message_commands[name] = MessageCommand(cmd, func)
             return self._message_commands[name]
 
         return _command

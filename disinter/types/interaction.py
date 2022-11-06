@@ -2,7 +2,7 @@ from typing import Any, Dict, List, TypedDict
 
 from typing_extensions import Self
 
-from disinter.custom_types import SNOWFLAKE
+from disinter.types.custom import SnowFlake
 
 
 class BaseObject(TypedDict, total=False):
@@ -62,28 +62,28 @@ class Role(BaseObject):
 
 
 class Overwrite(BaseObject):
-    id: SNOWFLAKE
+    id: SnowFlake
     type: int
     allow: str
     deny: str
 
 
 class DefaultReaction(BaseObject):
-    emoji_id: SNOWFLAKE | None
+    emoji_id: SnowFlake | None
     emoji_name: str | None
 
 
 class ForumTag(BaseObject):
-    id: SNOWFLAKE
+    id: SnowFlake
     name: str
     moderated: bool
-    emoji_id: SNOWFLAKE
+    emoji_id: SnowFlake
     emoji_name: str | None
 
 
 class ThreadMember(BaseObject):
-    id: SNOWFLAKE
-    user_id: SNOWFLAKE
+    id: SnowFlake
+    user_id: SnowFlake
     join_timestamp: str
     flags: int
 
@@ -98,23 +98,23 @@ class ThreadMetadata(BaseObject):
 
 
 class Channel(BaseObject):
-    id: SNOWFLAKE
+    id: SnowFlake
     type: int
-    guild_id: SNOWFLAKE
+    guild_id: SnowFlake
     position: int
     permission_overwrites: List[Overwrite] | None
     name: str | None
     topic: str | None
     nsfw: bool
-    last_message_id: SNOWFLAKE | None
+    last_message_id: SnowFlake | None
     bitrate: int
     user_limit: int
     rate_limit_per_user: int
     recipients: List[User]
     icon: str | None
-    owner_id: SNOWFLAKE
-    application_id: SNOWFLAKE
-    parent_id: SNOWFLAKE | None
+    owner_id: SnowFlake
+    application_id: SnowFlake
+    parent_id: SnowFlake | None
     last_pin_timestamp: str | None
     rtc_region: str | None
     video_quality_mode: int
@@ -127,21 +127,21 @@ class Channel(BaseObject):
     flags: int
     total_message_sent: int
     available_tags: List[ForumTag]
-    applied_tags: List[SNOWFLAKE]
+    applied_tags: List[SnowFlake]
     default_reaction_emoji: DefaultReaction | None
     default_thread_rate_limit_per_user: int
     default_sort_order: int | None
 
 
 class ChannelMention(BaseObject):
-    id: SNOWFLAKE
-    guild_id: SNOWFLAKE
+    id: SnowFlake
+    guild_id: SnowFlake
     type: int
     name: str
 
 
 class Attachment(BaseObject):
-    id: SNOWFLAKE
+    id: SnowFlake
     filename: str
     description: str
     content_type: str
@@ -209,7 +209,7 @@ class Embed(BaseObject):
 
 
 class Emoji(BaseObject):
-    id: SNOWFLAKE | None
+    id: SnowFlake | None
     name: str | None
     roles: List[str]
     user: User
@@ -231,7 +231,7 @@ class MessageActivity(BaseObject):
 
 
 class MessageInteraction(BaseObject):
-    id: SNOWFLAKE
+    id: SnowFlake
     type: int
     name: str
     user: User
@@ -285,14 +285,14 @@ class ComponentActionRows(BaseObject):
 
 
 class StickerItem(BaseObject):
-    id: SNOWFLAKE
+    id: SnowFlake
     name: str
     format_type: int
 
 
 class Message(BaseObject):
-    id: SNOWFLAKE
-    channel_id: SNOWFLAKE
+    id: SnowFlake
+    channel_id: SnowFlake
     author: User
     content: str
     timestamp: str
@@ -307,11 +307,11 @@ class Message(BaseObject):
     reactions: List[Reaction]
     nonce: int | str
     pinned: bool
-    webhook_id: SNOWFLAKE
+    webhook_id: SnowFlake
     type: int
     activity: MessageActivity
     application: Dict[str, Any]
-    application_id: SNOWFLAKE
+    application_id: SnowFlake
     message_reference: Dict[str, Any]
     flags: int
     referenced_message: Dict[str, Any] | None
@@ -323,39 +323,39 @@ class Message(BaseObject):
 
 
 class InteractionDataResolved(BaseObject):
-    users: Dict[SNOWFLAKE, User]
-    members: Dict[SNOWFLAKE, Member]
-    roles: Dict[SNOWFLAKE, Role]
-    channels: Dict[SNOWFLAKE, Channel]
-    messages: Dict[SNOWFLAKE, Message]
-    attachments: Dict[SNOWFLAKE, Attachment]
+    users: Dict[SnowFlake, User]
+    members: Dict[SnowFlake, Member]
+    roles: Dict[SnowFlake, Role]
+    channels: Dict[SnowFlake, Channel]
+    messages: Dict[SnowFlake, Message]
+    attachments: Dict[SnowFlake, Attachment]
 
 
 class InteractionDataOption(BaseObject):
     name: str
     type: int
     value: str | int | float
-    options: List[Self]
+    options: List[Self]  # type: ignore
     focused: bool
 
 
 class InteractionData(BaseObject):
-    id: SNOWFLAKE
+    id: SnowFlake
     name: str
     type: int
     resolved: InteractionDataResolved
     options: List[InteractionDataOption]
-    guild_id: SNOWFLAKE
-    target_id: SNOWFLAKE
+    guild_id: SnowFlake
+    target_id: SnowFlake
 
 
 class Interaction(BaseObject):
-    id: SNOWFLAKE
-    application_id: SNOWFLAKE
+    id: SnowFlake
+    application_id: SnowFlake
     type: int
     data: InteractionData
-    guild_id: SNOWFLAKE
-    channel_id: SNOWFLAKE
+    guild_id: SnowFlake
+    channel_id: SnowFlake
     member: Member
     user: User
     token: str

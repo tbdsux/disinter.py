@@ -1,11 +1,11 @@
 from typing import Dict, List
 
-from disinter.interaction import Interaction, InteractionDataOption
 from disinter.response import (
     DiscordResponse,
     InteractionCallbackTypeChannelMessageWithSource,
     ResponseData,
 )
+from disinter.types.interaction import Interaction, InteractionDataOption
 
 
 class InteractionContext:

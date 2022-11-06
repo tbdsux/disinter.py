@@ -1,7 +1,5 @@
 from typing import Any, Dict, List, NewType
 
-from disinter.types import CHANNEL_TYPE
-
 ApplicationCommandOptionType = NewType("ApplicationCommandOptionType", int)
 
 ApplicationCommandOptionTypeSubCommand = ApplicationCommandOptionType(1)
@@ -63,9 +61,9 @@ class ApplicationCommandOption:
         description_localizations: Dict[str, str] = None,
         required: bool = None,
         choices: List[ApplicationCommandOptionChoice] = None,
-        channel_types: List[CHANNEL_TYPE] = None,
-        min_value: int | float = None,
-        max_value: int | float = None,
+        channel_types: List[int] = None,
+        min_value: int | float | None = None,
+        max_value: int | float | None = None,
         min_length: int = None,
         max_length: int = None,
         autocomplete: bool = None,

@@ -1,5 +1,7 @@
 from typing import Any, Dict, List, NewType
 
+from typing_extensions import Self
+
 
 class BaseJSON:
     def _to_json(self):
@@ -144,14 +146,6 @@ class Emoji(BaseJSON):
         self.animated = animated
 
 
-class ComponentActionRows:
-    def __init__(
-        self,
-    ) -> None:
-        self.type = 1
-        self.components = []
-
-
 ComponentButtonStyle = NewType("ComponentButtonStyle", int)
 ComponentButtonStylePrimary = ComponentButtonStyle(1)
 ComponentButtonStyleSecondary = ComponentButtonStyle(2)
@@ -229,19 +223,12 @@ class ComponentSelectMenuOption:
         return json
 
 
-ChannelType = NewType("ChannelType", int)
-ChannelTypeGuildText = ChannelType(0)
-ChannelTypeDM = ChannelType(1)
-ChannelTypeGuildVoice = ChannelType(2)
-ChannelTypeGroupDM = ChannelType(3)
-ChannelTypeGuildCategory = ChannelType(4)
-ChannelTypeGuildAnnouncement = ChannelType(5)
-ChannelTypeAnnouncementThread = ChannelType(10)
-ChannelTypePublicThread = ChannelType(11)
-ChannelTypePrivateThread = ChannelType(12)
-ChannelTypeGuildStageVoice = ChannelType(13)
-ChannelTypeGuildDirectory = ChannelType(14)
-ChannelTypeGuildForum = ChannelType(15)
+class ComponentActionRows:
+    def __init__(
+        self,
+    ) -> None:
+        self.type = 1
+        self.components: List[ComponentButton | ComponentSelectMenu | Self] = []  # type: ignore
 
 
 class ComponentSelectMenu:
@@ -250,7 +237,7 @@ class ComponentSelectMenu:
         type: ComponentSelectMenuType,
         custom_id: str,
         options: List[ComponentSelectMenuOption] = None,
-        channel_types: List[ChannelType] = None,
+        channel_types: List[int] = None,
         placeholder: str = None,
         min_values: int = None,
         max_vales: int = None,
@@ -279,7 +266,7 @@ class ComponentSelectMenu:
         return json
 
 
-ComponentTextInputStyle = NewType("ComponentTextInput", int)
+ComponentTextInputStyle = NewType("ComponentTextInputStyle", int)
 ComponentTextInputStyleShort = ComponentTextInputStyle(1)
 ComponentTextInputStyleParagraph = ComponentTextInputStyle(2)
 

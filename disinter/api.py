@@ -4,6 +4,7 @@ from requests import Session
 
 from disinter import DISCORD_API
 from disinter.errors import APIError
+from disinter.types.api import APIApplicationCommand
 
 
 class DiscordAPI:
@@ -19,7 +20,7 @@ class DiscordAPI:
         endpoint: str,
         method: str,
         params: Dict[str, Any] = None,
-        body: Dict[str, Any] = None,
+        body: Any = None,
     ):
         """Default internal base request function for all of methods in the class.
 
@@ -49,7 +50,9 @@ class DiscordAPI:
 
     # =============== GUILD APPLICATION COMMANDS
 
-    def get_guild_application_commands(self, guild: int | str, **kwargs):
+    def get_guild_application_commands(
+        self, guild: int | str, **kwargs
+    ) -> List[APIApplicationCommand]:
         """Get Guild Application Commands"""
 
         return self._request(
@@ -69,7 +72,9 @@ class DiscordAPI:
             body=command,
         )
 
-    def get_guild_application_command(self, guild: int | str, command_id: int | str):
+    def get_guild_application_command(
+        self, guild: int | str, command_id: int | str
+    ) -> APIApplicationCommand:
         """Get Guild Application Command"""
 
         return self._request(
@@ -109,7 +114,7 @@ class DiscordAPI:
 
     # =============== GLOBAL APPLICATION COMMANDS
 
-    def get_global_application_commands(self, **kwargs):
+    def get_global_application_commands(self, **kwargs) -> List[APIApplicationCommand]:
         """Get Global Application Commands"""
 
         return self._request(
@@ -123,7 +128,9 @@ class DiscordAPI:
             f"/applications/{self.application_id}/commands", "POST", body=command
         )
 
-    def get_global_application_command(self, command_id: int | str):
+    def get_global_application_command(
+        self, command_id: int | str
+    ) -> APIApplicationCommand:
         """Get Global Application Command"""
 
         return self._request(
