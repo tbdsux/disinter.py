@@ -48,99 +48,95 @@ class DiscordAPI:
 
         return data
 
-    # =============== GUILD APPLICATION COMMANDS
-
-    def get_guild_application_commands(
-        self, guild: int | str, **kwargs
+    def get_application_commands(
+        self, guild: int | str | None = None, **kwargs
     ) -> List[APIApplicationCommand]:
-        """Get Guild Application Commands"""
+        """Get application commands.
 
-        return self._request(
-            f"/applications/{self.application_id}/guilds/{guild}/commands",
-            "GET",
-            params=kwargs,
-        )
+        Args:
+            guild (int | str | None, optional): Guild to get the application commands. If None, gets the global commands. Defaults to None.
 
-    def create_guild_application_command(
-        self, guild: int | str, command: Dict[str, Any]
-    ):
-        """Get Guild Application Commands"""
-
-        return self._request(
-            f"/applications/{self.application_id}/guilds/{guild}/commands",
-            "POST",
-            body=command,
-        )
-
-    def get_guild_application_command(
-        self, guild: int | str, command_id: int | str
-    ) -> APIApplicationCommand:
-        """Get Guild Application Command"""
-
-        return self._request(
-            f"/applications/{self.application_id}/guilds/{guild}/commands/{command_id}",
-            "GET",
-        )
-
-    def edit_guild_application_command(
-        self, guild: int | str, command_id: int | str, command: Dict[str, Any]
-    ):
-        """Edit Guild Application Command"""
-
-        return self._request(
-            f"/applications/{self.application_id}/guilds/{guild}/commands/{command_id}",
-            "PATCH",
-            body=command,
-        )
-
-    def delete_guild_application_command(self, guild: int | str, command_id: int | str):
-        """Delete Guild Application Command"""
-
-        return self._request(
-            f"/applications/{self.application_id}/guilds/{guild}/commands/{command_id}",
-            "GET",
-        )
-
-    def bulk_overwrite_guild_application_commands(
-        self, guild: int | str, commands: List[Dict[str, Any]]
-    ):
-        """Bulk Overwrite Global Application Commands"""
-
-        return self._request(
-            f"/applications/{self.application_id}/guilds/{guild}/commands",
-            "PUT",
-            body=commands,
-        )
-
-    # =============== GLOBAL APPLICATION COMMANDS
-
-    def get_global_application_commands(self, **kwargs) -> List[APIApplicationCommand]:
-        """Get Global Application Commands"""
+        Returns:
+            List[APIApplicationCommand]
+        """
+        if guild is not None:
+            return self._request(
+                f"/applications/{self.application_id}/guilds/{guild}/commands",
+                "GET",
+                params=kwargs,
+            )
 
         return self._request(
             f"/applications/{self.application_id}/commands", "GET", params=kwargs
         )
 
-    def create_global_application_command(self, command: Dict[str, Any]):
-        """Create Global Application Command"""
+    def create_application_command(
+        self, command: Dict[str, Any], guild: int | str | None = None
+    ):
+        """Create an application command.
+
+        Args:
+            command (Dict[str, Any]): Application command object.
+            guild (int | str | None, optional): Guild to create the command. If None, creates a global command. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
+        if guild is not None:
+            return self._request(
+                f"/applications/{self.application_id}/guilds/{guild}/commands",
+                "POST",
+                body=command,
+            )
 
         return self._request(
             f"/applications/{self.application_id}/commands", "POST", body=command
         )
 
-    def get_global_application_command(
-        self, command_id: int | str
+    def get_application_command(
+        self, command_id: int | str, guild: int | str | None = None
     ) -> APIApplicationCommand:
-        """Get Global Application Command"""
+        """Get an application command.
+
+        Args:
+            command_id (int | str): ID of the command to fetch.
+            guild (int | str | None, optional): Guild to fetch the command_id. If None, fetches from the global commands. Defaults to None.
+
+        Returns:
+            APIApplicationCommand
+        """
+        if guild is not None:
+            return self._request(
+                f"/applications/{self.application_id}/guilds/{guild}/commands/{command_id}",
+                "GET",
+            )
 
         return self._request(
             f"/applications/{self.application_id}/commands/{command_id}", "GET"
         )
 
-    def edit_global_application_command(
-        self, command_id: int | str, command: Dict[str, Any]
+    def edit_application_command(
+        self,
+        command_id: int | str,
+        command: Dict[str, Any],
+        guild: int | str | None = None,
     ):
-        """Edit Global Application Command"""
+        """Edit an application command.
+
+        Args:
+            command_id (int | str): ID of the command to edit.
+            command (Dict[str, Any]): Application command object.
+            guild (int | str | None, optional): Guild to update the command. If None, updates the command in the global commands. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
+        if guild is not None:
+            return self._request(
+                f"/applications/{self.application_id}/guilds/{guild}/commands/{command_id}",
+                "PATCH",
+                body=command,
+            )
 
         return self._request(
             f"/applications/{self.application_id}/commands/{command_id}",
@@ -148,17 +144,46 @@ class DiscordAPI:
             body=command,
         )
 
-    def delete_global_application_command(self, command_id: int | str):
-        """Delete Global Application Command"""
+    def delete_application_command(
+        self, command_id: int | str, guild: int | str | None = None
+    ):
+        """Delete an application command.
+
+        Args:
+            command_id (int | str): ID of the command to delete.
+            guild (int | str | None, optional): Guild to remove the command. If None, removes the command in the global commands. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
+        if guild is not None:
+            return self._request(
+                f"/applications/{self.application_id}/guilds/{guild}/commands/{command_id}",
+                "GET",
+            )
 
         return self._request(
             f"/applications/{self.application_id}/commands/{command_id}", "DELETE"
         )
 
-    def bulk_overwrite_global_application_commands(
-        self, commands: List[Dict[str, Any]]
+    def bulk_overwrite_application_commands(
+        self, commands: List[Dict[str, Any]], guild: int | str | None = None
     ):
-        """Bulk Overwrite Global Application Commands"""
+        """Bulk overwrite commands.
+
+        Args:
+            commands (List[Dict[str, Any]]): List of commands to create and overwrite.
+            guild (int | str | None, optional): Guild to overwrite the commands. If None, it will overwrite to the global commands. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
+        if guild is not None:
+            return self._request(
+                f"/applications/{self.application_id}/guilds/{guild}/commands",
+                "PUT",
+                body=commands,
+            )
 
         return self._request(
             f"/applications/{self.application_id}/commands", "PUT", body=commands

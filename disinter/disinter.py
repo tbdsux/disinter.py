@@ -8,6 +8,7 @@ from starlette.types import Receive, Scope, Send
 
 from disinter.api import DiscordAPI
 from disinter.context import MessageContext, SlashContext, UserContext
+from disinter.errors import CommandNameExists
 from disinter.response import DiscordResponse
 from disinter.types.command import (
     ApplicationCommand,
@@ -173,7 +174,7 @@ class DisInter(FastAPI):
         token: str,
         application_id: int | str,
         public_key: str,
-        guilds: List[str] = None,
+        guilds: List[str] | None = None,
     ) -> None:
         super().__init__()
 
@@ -383,31 +384,66 @@ class DisInter(FastAPI):
 
     def _parse_commands(self):
         cmd_json: List[Dict[str, Any]] = []
+        cmd_keys: List[str] = []
 
         for cmd in self._slash_commands.values():
+            name = cmd.command.name
+            if name in cmd_keys:
+                raise CommandNameExists(name)
+
             js = cmd._to_json()
             cmd_json.append(js)
+            cmd_keys.append(cmd.command.name)
 
         for cmd in self._user_commands.values():
+            name = cmd.command.name
+            if name in cmd_keys:
+                raise CommandNameExists(name)
+
             js = cmd._to_json()
             cmd_json.append(js)
+            cmd_keys.append(cmd.command.name)
 
         for cmd in self._message_commands.values():
+            name = cmd.command.name
+            if name in cmd_keys:
+                raise CommandNameExists(name)
+
             js = cmd._to_json()
             cmd_json.append(js)
+            cmd_keys.append(cmd.command.name)
 
-        return cmd_json
+        return cmd_json, cmd_keys
 
     def _sync_commands(self):
-        commands = self._parse_commands()
+        commands, cmd_keys = self._parse_commands()
 
         if self.guilds is None:
-            self.api.bulk_overwrite_global_application_commands(commands)
+            # global commans
+            global_commands = self.api.get_application_commands()
+            for i in global_commands:
+                # check if command exist in current new ones
+                if i["name"] in cmd_keys:
+                    continue
 
-            return
+                # remove if it does not exist
+                self.api.delete_application_command(i["id"])
+
+            # overwrite commands
+            self.api.bulk_overwrite_application_commands(commands)
 
         for i in self.guilds:
-            self.api.bulk_overwrite_guild_application_commands(i, commands)
+            guild_commands = self.api.get_application_commands(i)
+            for k in guild_commands:
+                # check if command exists in current new ones
+                if k["name"] in cmd_keys:
+                    continue
+
+                # remove if it does not exist
+                self.api.delete_application_command(k["id"], i)
+
+            # overwrite commands
+            self.api.bulk_overwrite_application_commands(commands, i)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await super().__call__(scope, receive, send)
