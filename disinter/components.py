@@ -146,18 +146,18 @@ class Emoji(BaseJSON):
         self.animated = animated
 
 
-ComponentButtonStyle = NewType("ComponentButtonStyle", int)
-ComponentButtonStylePrimary = ComponentButtonStyle(1)
-ComponentButtonStyleSecondary = ComponentButtonStyle(2)
-ComponentButtonStyleSuccess = ComponentButtonStyle(3)
-ComponentButtonStyleDanger = ComponentButtonStyle(4)
-ComponentButtonStyleLink = ComponentButtonStyle(5)
+class ButtonStyles:
+    Primary = 1
+    Secondary = 2
+    Success = 3
+    Danger = 4
+    Link = 5
 
 
 class ComponentButton:
     def __init__(
         self,
-        style: ComponentButtonStyle,
+        style: int,
         label: str = None,
         emoji: Emoji = None,
         custom_id: str = None,
@@ -260,10 +260,16 @@ class ComponentSelectMenu:
 
 class ComponentActionRows:
     def __init__(
-        self,
+        self, components: List[ComponentButton | ComponentSelectMenu | Self]  # type: ignore
     ) -> None:
         self.type = 1
-        self.components: List[ComponentButton | ComponentSelectMenu | Self] = []  # type: ignore
+        self.components = components
+
+    def _to_json(self):
+        return {
+            "type": self.type,
+            "components": [i._to_json() for i in self.components],
+        }
 
 
 Components = ComponentButton | ComponentSelectMenu | ComponentActionRows

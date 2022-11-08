@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse, Response
 from starlette.types import Receive, Scope, Send
 
 from disinter.api import DiscordAPI
-from disinter.context import MessageContext, SlashContext, UserContext
+from disinter.context import ComponentContext, MessageContext, SlashContext, UserContext
 from disinter.errors import CommandNameExists
 from disinter.response import DiscordResponse
 from disinter.types.command import (
@@ -18,7 +18,11 @@ from disinter.types.command import (
     ApplicationCommandTypeMessage,
     ApplicationCommandTypeUser,
 )
-from disinter.types.interaction import Interaction
+from disinter.types.etc import ComponentTypes
+from disinter.types.interaction import (
+    InteractionApplicationCommand,
+    InteractionMessageComponent,
+)
 from disinter.utils import validate_name
 
 # slash command function callback type
@@ -37,6 +41,13 @@ USER_CALLBACK_FUNCTION = Union[
 MESSAGE_CALLBACK_FUNCTION = Union[
     Callable[[MessageContext], DiscordResponse],
     Callable[[MessageContext], Awaitable[DiscordResponse]],
+]
+
+
+# component function callback type
+COMPONENT_CALLBACK_FUNCTION = Union[
+    Callable[[ComponentContext], DiscordResponse],
+    Callable[[ComponentContext], Awaitable[DiscordResponse]],
 ]
 
 
@@ -168,6 +179,12 @@ class MessageCommand:
         return {"name": self.command.name, "type": self.command.type}
 
 
+class MessageComponent:
+    def __init__(self, custom_id: str, func: COMPONENT_CALLBACK_FUNCTION) -> None:
+        self.custom_id = custom_id
+        self._callback = func
+
+
 class DisInter(FastAPI):
     def __init__(
         self,
@@ -189,6 +206,11 @@ class DisInter(FastAPI):
         self._user_commands: Dict[str, UserCommand] = {}
         self._message_commands: Dict[str, MessageCommand] = {}
 
+        self._button_components: Dict[str, MessageComponent] = {}
+        self._button_fallback: COMPONENT_CALLBACK_FUNCTION | None = None
+        self._selectmenu_components: Dict[str, MessageComponent] = {}
+        self._selectmenu_fallback: COMPONENT_CALLBACK_FUNCTION | None = None
+
         # add custom api router for interactions
         self.add_route(
             "/", self.__route_handler, methods=["POST"], include_in_schema=False
@@ -207,13 +229,14 @@ class DisInter(FastAPI):
         ):
             return Response(content="Bad request signature", status_code=401)
 
-        data: Interaction = await request.json()
+        req = await request.json()
 
         # Automatically respond to pings
-        if data["type"] == InteractionType.PING:
+        if req["type"] == InteractionType.PING:
             return JSONResponse({"type": InteractionResponseType.PONG})
 
-        if data["type"] == InteractionType.APPLICATION_COMMAND:
+        if req["type"] == InteractionType.APPLICATION_COMMAND:
+            data: InteractionApplicationCommand = req
             command_name = data["data"]["name"]
 
             # slash commands
@@ -242,7 +265,7 @@ class DisInter(FastAPI):
                                         )
 
                                     ctx = SlashContext(data, _sub["options"])  # type: ignore
-                                    json = await self._execute_command_handler(
+                                    json = await self._execute_handler(
                                         ctx, subcommand._callback
                                     )
                                     return JSONResponse(json, status_code=200)
@@ -256,13 +279,11 @@ class DisInter(FastAPI):
                             )
 
                         ctx = SlashContext(data, _opt["options"])
-                        json = await self._execute_command_handler(
-                            ctx, subcommand._callback
-                        )
+                        json = await self._execute_handler(ctx, subcommand._callback)
                         return JSONResponse(json, status_code=200)
 
                 slash_ctx = SlashContext(data, data["data"].get("options"))
-                json = await self._execute_command_handler(slash_ctx, command._callback)
+                json = await self._execute_handler(slash_ctx, command._callback)
                 return JSONResponse(json, status_code=200)
 
             # user commands
@@ -270,9 +291,7 @@ class DisInter(FastAPI):
             if user_command is not None:
                 # user command exists
                 user_ctx = UserContext(data)
-                json = await self._execute_usercommand_handler(
-                    user_ctx, user_command._callback
-                )
+                json = await self._execute_handler(user_ctx, user_command._callback)
                 return JSONResponse(json, status_code=200)
 
             # message commands
@@ -280,16 +299,73 @@ class DisInter(FastAPI):
             if message_command is not None:
                 # message command exists
                 msg_ctx = MessageContext(data)
-                json = await self._execute_messagecommand_handler(
-                    msg_ctx, message_command._callback
-                )
+                json = await self._execute_handler(msg_ctx, message_command._callback)
                 return JSONResponse(json, status_code=200)
 
             # unknown command in here
             return JSONResponse({"error": "Unknown type"}, status_code=401)
 
-    async def _execute_command_handler(
-        self, context: SlashContext, callback: SLASH_CALLBACK_FUNCTION
+        if req["type"] == InteractionType.MESSAGE_COMPONENT:
+            msg_component: InteractionMessageComponent = req
+
+            custom_id = msg_component["data"]["custom_id"]
+            component_type = msg_component["data"]["component_type"]
+            component_context = ComponentContext(msg_component)
+
+            if component_type == ComponentTypes.Button:  # handle button component
+                btn_component = self._button_components.get(custom_id)
+                if btn_component is not None:
+                    json = await self._execute_handler(
+                        component_context, btn_component._callback
+                    )
+                    return JSONResponse(json, status_code=200)
+
+                if self._button_fallback is not None:
+                    json = await self._execute_handler(
+                        component_context, self._button_fallback
+                    )
+                    return JSONResponse(json, status_code=200)
+
+                # no button wrapper callback set in app
+                return JSONResponse(
+                    {"error": "Component wrapper callback function not set"},
+                    status_code=500,
+                )
+
+            if component_type in [
+                ComponentTypes.StringSelect,
+                ComponentTypes.UserSelect,
+                ComponentTypes.RoleSelect,
+                ComponentTypes.MentionableSelect,
+                ComponentTypes.ChannelSelect,
+            ]:
+                # handle select menu component
+                menu_component = self._selectmenu_components.get(custom_id)
+                if menu_component is not None:
+                    json = await self._execute_handler(
+                        component_context, menu_component._callback
+                    )
+                    return JSONResponse(json, status_code=200)
+
+                if self._selectmenu_fallback is not None:
+                    json = await self._execute_handler(
+                        component_context, self._selectmenu_fallback
+                    )
+                    return JSONResponse(json, status_code=200)
+
+                # no select menu wrapper callback set in app
+                return JSONResponse(
+                    {"error": "Component wrapper callback function not set"},
+                    status_code=500,
+                )
+
+    async def _execute_handler(
+        self,
+        context: SlashContext | UserContext | MessageContext | ComponentContext,
+        callback: SLASH_CALLBACK_FUNCTION
+        | USER_CALLBACK_FUNCTION
+        | MESSAGE_CALLBACK_FUNCTION
+        | COMPONENT_CALLBACK_FUNCTION,
     ):
         if asyncio.iscoroutinefunction(callback):
             output = await callback(context)
@@ -297,23 +373,41 @@ class DisInter(FastAPI):
 
         return callback(context)._to_json()  # type: ignore
 
-    async def _execute_usercommand_handler(
-        self, context: UserContext, callback: USER_CALLBACK_FUNCTION
-    ):
-        if asyncio.iscoroutinefunction(callback):
-            output = await callback(context)
-            return output._to_json()
+    def button_component(self, custom_id: str | None = None):
+        """Add a function callback to the custom_id of a button component.
 
-        return callback(context)._to_json()  # type: ignore
+        Args:
+            custom_id (str): ID of the button.
+        """
 
-    async def _execute_messagecommand_handler(
-        self, context: MessageContext, callback: MESSAGE_CALLBACK_FUNCTION
-    ):
-        if asyncio.iscoroutinefunction(callback):
-            output = await callback(context)
-            return output._to_json()
+        def _component(func: COMPONENT_CALLBACK_FUNCTION):
+            if custom_id is None:
+                self._button_fallback = func
+                return
 
-        return callback(context)._to_json()  # type: ignore
+            cmp = MessageComponent(custom_id=custom_id, func=func)
+            self._button_components[custom_id] = cmp
+            return self._button_components[custom_id]
+
+        return _component
+
+    def selectmenu_component(self, custom_id: str | None = None):
+        """Add a function callback to the custom_id of a select menu component.
+
+        Args:
+            custom_id (str): ID of the select menu.
+        """
+
+        def _component(func: COMPONENT_CALLBACK_FUNCTION):
+            if custom_id is None:
+                self._selectmenu_fallback = func
+                return
+
+            cmp = MessageComponent(custom_id=custom_id, func=func)
+            self._selectmenu_components[custom_id] = cmp
+            return self._selectmenu_components[custom_id]
+
+        return _component
 
     def slash_command(
         self,

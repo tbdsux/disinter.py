@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, Generic, List, TypeVar
 
 from disinter.components import Components, Embed
 from disinter.response import (
@@ -7,19 +7,27 @@ from disinter.response import (
     ResponseData,
 )
 from disinter.types.interaction import (
-    Interaction,
+    InteractionApplicationCommand,
     InteractionDataOption,
+    InteractionMessageComponent,
+    InteractionModalSubmit,
     Member,
     Message,
     User,
 )
 
+T = TypeVar(
+    "T",
+    InteractionApplicationCommand,
+    InteractionMessageComponent,
+    InteractionModalSubmit,
+)
 
-class InteractionContext:
-    def __init__(self, interaction: Interaction) -> None:
-        self.interaction = interaction
 
-        self.data = interaction.get("data")
+class InteractionContext(Generic[T]):
+    def __init__(self, interaction: T) -> None:
+        self.interaction: T = interaction
+
         self.guild_id = interaction.get("guild_id")
         self.channel_id = interaction.get("channel_id")
         self.application_id = interaction.get("application_id")
@@ -60,7 +68,7 @@ class InteractionContext:
             if flags is not None:
                 flags = 1 << 2
 
-        r = DiscordResponse(
+        return DiscordResponse(
             type=InteractionCallbackTypeChannelMessageWithSource,
             data=ResponseData(
                 content=content,
@@ -70,15 +78,17 @@ class InteractionContext:
                 flags=flags,
             ),
         )
-        print(r._to_json())
-        return r
 
 
 class SlashContext(InteractionContext):
     def __init__(
-        self, interaction: Interaction, options: List[InteractionDataOption] | None
+        self,
+        interaction: InteractionApplicationCommand,
+        options: List[InteractionDataOption] | None,
     ) -> None:
         super().__init__(interaction)
+
+        self.data = interaction.get("data")
 
         self.options: Dict[str, InteractionDataOption] = {
             i["name"]: i for i in options or []
@@ -86,8 +96,10 @@ class SlashContext(InteractionContext):
 
 
 class UserContext(InteractionContext):
-    def __init__(self, interaction: Interaction) -> None:
+    def __init__(self, interaction: InteractionApplicationCommand) -> None:
         super().__init__(interaction)
+
+        self.data = interaction.get("data")
 
         # this is the target user
         self.user: User = interaction["data"]["resolved"]["users"][
@@ -100,10 +112,19 @@ class UserContext(InteractionContext):
 
 
 class MessageContext(InteractionContext):
-    def __init__(self, interaction: Interaction) -> None:
+    def __init__(self, interaction: InteractionApplicationCommand) -> None:
         super().__init__(interaction)
+
+        self.data = interaction.get("data")
 
         # this is the target message
         self.message: Message = interaction["data"]["resolved"]["messages"][
             interaction["data"]["target_id"]
         ]
+
+
+class ComponentContext(InteractionContext):
+    def __init__(self, interaction: InteractionMessageComponent) -> None:
+        super().__init__(interaction)
+
+        self.data = interaction.get("data")

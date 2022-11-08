@@ -339,7 +339,7 @@ class InteractionDataOption(BaseObject):
     focused: bool
 
 
-class InteractionData(BaseObject):
+class ApplicationCommandData(BaseObject):
     id: SnowFlake
     name: str
     type: int
@@ -349,11 +349,23 @@ class InteractionData(BaseObject):
     target_id: SnowFlake
 
 
+class MessageComponentData(BaseObject):
+    custom_id: str
+    component_type: int
+    values: List[str] | None
+
+
+class ModalSubmitData(BaseObject):
+    custom_id: str
+    components: List[
+        ComponentActionRows | ComponentButton | ComponentSelectMenu | ComponentTextInput
+    ]
+
+
 class Interaction(BaseObject):
     id: SnowFlake
     application_id: SnowFlake
     type: int
-    data: InteractionData
     guild_id: SnowFlake
     channel_id: SnowFlake
     member: Member
@@ -364,3 +376,15 @@ class Interaction(BaseObject):
     app_permisions: str
     locale: str
     guild_locale: str
+
+
+class InteractionApplicationCommand(Interaction):
+    data: ApplicationCommandData
+
+
+class InteractionMessageComponent(Interaction):
+    data: MessageComponentData
+
+
+class InteractionModalSubmit(Interaction):
+    data: ModalSubmitData
