@@ -95,7 +95,7 @@ class Embed:
         video: EmbedVideo = None,
         provider: EmbedProvider = None,
         author: EmbedAuthor = None,
-        fields: List[EmbedAuthor] = None,
+        fields: List[EmbedField] = None,
     ):
         self.title = title
         self.type = type
@@ -223,14 +223,6 @@ class ComponentSelectMenuOption:
         return json
 
 
-class ComponentActionRows:
-    def __init__(
-        self,
-    ) -> None:
-        self.type = 1
-        self.components: List[ComponentButton | ComponentSelectMenu | Self] = []  # type: ignore
-
-
 class ComponentSelectMenu:
     def __init__(
         self,
@@ -265,6 +257,16 @@ class ComponentSelectMenu:
 
         return json
 
+
+class ComponentActionRows:
+    def __init__(
+        self,
+    ) -> None:
+        self.type = 1
+        self.components: List[ComponentButton | ComponentSelectMenu | Self] = []  # type: ignore
+
+
+Components = ComponentButton | ComponentSelectMenu | ComponentActionRows
 
 ComponentTextInputStyle = NewType("ComponentTextInputStyle", int)
 ComponentTextInputStyleShort = ComponentTextInputStyle(1)
