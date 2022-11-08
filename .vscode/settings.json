@@ -1,7 +1,6 @@
 {
     "python.formatting.provider": "black",
     "editor.codeActionsOnSave": {
-        "source.fixAll": true,
         "source.organizeImports": true
     },
     "python.linting.mypyEnabled": true
