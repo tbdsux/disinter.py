@@ -4,6 +4,8 @@ Discord bot to respond to interactions via webhook.
 
 ## Usage
 
+(Still trying to update...)
+
 - Create and manage the bot in a `main.py` or so...
 
 ```python
@@ -113,11 +115,36 @@ from main import app
 app._sync_commands()
 ```
 
-## Not Implemented
+- Run the server. `disinter.py` wraps over `FastAPI` so you can run it asgi server like `uvicorn`
+
+```sh
+uvicorn main:app --reload
+```
+
+### Development
+
+If you have your app running with `uvicorn`, you can use `ngrok` (install it first) to reverse proxy and use it to test your bot.
+
+```sh
+ngrok http 8000
+```
+
+Replace `8000` with the port the server is running in.
+
+- Copy your forwarding url
+  ![](./docs/ngrok-proxy-url.png)
+
+- Update your `Interactions Endpoint Url` in your discord app dashboard
+  ![](./docs/endpoint.png)
+
+You can now enjoy developing your bot :tada: !
+
+## Not implemented features
 
 - File attachments
 - Autocomplete
 - Modals
+- Deferred response
 
 ##
 
