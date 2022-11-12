@@ -4,7 +4,7 @@ from requests import Session
 
 from disinter import DISCORD_API
 from disinter.errors import APIError
-from disinter.types.api import APIApplicationCommand
+from disinter.types import APIApplicationCommand
 
 
 class DiscordAPI:

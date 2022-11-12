@@ -12,18 +12,19 @@ Discord bot to respond to interactions via webhook.
 import datetime
 import os
 
-from disinter.components import (
+from disinter import (
+    ApplicationCommandOption,
+    ApplicationCommandOptionTypeUser,
     ButtonStyles,
     ComponentActionRows,
     ComponentButton,
+    ComponentContext,
+    DisInter,
     Embed,
     EmbedField,
-)
-from disinter.context import ComponentContext, MessageContext, SlashContext, UserContext
-from disinter.disinter import DisInter
-from disinter.types.command import (
-    ApplicationCommandOption,
-    ApplicationCommandOptionTypeUser,
+    MessageContext,
+    SlashContext,
+    UserContext,
 )
 
 TOKEN = os.environ.get("TOKEN", "")

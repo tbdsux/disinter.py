@@ -7,10 +7,7 @@ from fastapi.responses import JSONResponse, Response
 from starlette.types import Receive, Scope, Send
 
 from disinter.api import DiscordAPI
-from disinter.context import ComponentContext, MessageContext, SlashContext, UserContext
-from disinter.errors import CommandNameExists
-from disinter.response import DiscordResponse
-from disinter.types.command import (
+from disinter.command import (
     ApplicationCommand,
     ApplicationCommandOption,
     ApplicationCommandOptionTypeSubCommand,
@@ -18,8 +15,11 @@ from disinter.types.command import (
     ApplicationCommandTypeMessage,
     ApplicationCommandTypeUser,
 )
-from disinter.types.etc import ComponentTypes
-from disinter.types.interaction import (
+from disinter.context import ComponentContext, MessageContext, SlashContext, UserContext
+from disinter.errors import CommandNameExists
+from disinter.response import DiscordResponse
+from disinter.types import (
+    ComponentTypes,
     InteractionApplicationCommand,
     InteractionMessageComponent,
 )

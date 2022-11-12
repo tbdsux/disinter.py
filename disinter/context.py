@@ -1,12 +1,8 @@
 from typing import Any, Dict, Generic, List, TypeVar
 
 from disinter.components import Components, Embed
-from disinter.response import (
-    DiscordResponse,
-    InteractionCallbackTypeChannelMessageWithSource,
-    ResponseData,
-)
-from disinter.types.interaction import (
+from disinter.response import DiscordResponse, InteractionCallback, ResponseData
+from disinter.types import (
     InteractionApplicationCommand,
     InteractionDataOption,
     InteractionMessageComponent,
@@ -69,7 +65,7 @@ class InteractionContext(Generic[T]):
                 flags = 1 << 2
 
         return DiscordResponse(
-            type=InteractionCallbackTypeChannelMessageWithSource,
+            type=InteractionCallback.ChannelMessageWithSource,
             data=ResponseData(
                 content=content,
                 components=components,

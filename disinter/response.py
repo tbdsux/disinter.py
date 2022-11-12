@@ -1,15 +1,16 @@
-from typing import Any, Dict, List, NewType
+from typing import Any, Dict, List
 
 from disinter.components import Components, Embed
 
-InteractionCallbackType = NewType("InteractionCallbackType", int)
-InteractionCallbackTypePong = InteractionCallbackType(1)
-InteractionCallbackTypeChannelMessageWithSource = InteractionCallbackType(4)
-InteractionCallbackTypeDeferredChannelMessageWithSource = InteractionCallbackType(5)
-InteractionCallbackTypeDefferedUpdateMessage = InteractionCallbackType(6)
-InteractionCallbackTypeUpdateMessage = InteractionCallbackType(7)
-InteractionCallbackTypeApplicationCommandAutocompleteResult = InteractionCallbackType(8)
-InteractionCallbackTypeModal = InteractionCallbackType(9)
+
+class InteractionCallback:
+    Pong = 1
+    ChannelMessageWithSource = 4
+    DeferredChannelMessageWithSource = 5
+    DefferedUpdateMessage = 6
+    UpdateMessage = 7
+    ApplicationCommandAutocompleteResult = 8
+    Modal = 9
 
 
 class ResponseData:
@@ -56,9 +57,7 @@ class ResponseData:
 
 
 class DiscordResponse:
-    def __init__(
-        self, type: InteractionCallbackType, data: ResponseData = None
-    ) -> None:
+    def __init__(self, type: int, data: ResponseData = None) -> None:
         self.type = type
         self.data = data
 
