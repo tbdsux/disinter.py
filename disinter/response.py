@@ -13,6 +13,22 @@ class InteractionCallback:
     Modal = 9
 
 
+class ModalResponseData:
+    def __init__(
+        self, custom_id: str, title: str, components: List[Components]
+    ) -> None:
+        self.custom_id = custom_id
+        self.title = title
+        self.components = components
+
+    def _to_json(self):
+        return {
+            "custom_id": self.custom_id,
+            "title": self.title,
+            "components": [i._to_json() for i in self.components],
+        }
+
+
 class ResponseData:
     def __init__(
         self,
@@ -57,7 +73,9 @@ class ResponseData:
 
 
 class DiscordResponse:
-    def __init__(self, type: int, data: ResponseData = None) -> None:
+    def __init__(
+        self, type: int, data: ResponseData | ModalResponseData | None = None
+    ) -> None:
         self.type = type
         self.data = data
 

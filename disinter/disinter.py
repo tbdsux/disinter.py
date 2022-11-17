@@ -15,7 +15,13 @@ from disinter.command import (
     ApplicationCommandTypeMessage,
     ApplicationCommandTypeUser,
 )
-from disinter.context import ComponentContext, MessageContext, SlashContext, UserContext
+from disinter.context import (
+    ComponentContext,
+    MessageContext,
+    ModalSubmitContext,
+    SlashContext,
+    UserContext,
+)
 from disinter.errors import CommandNameExists
 from disinter.response import DiscordResponse
 from disinter.types import (
@@ -23,6 +29,7 @@ from disinter.types import (
     InteractionApplicationCommand,
     InteractionMessageComponent,
 )
+from disinter.types.interaction import InteractionModalSubmit
 from disinter.utils import validate_name
 
 # slash command function callback type
@@ -48,6 +55,13 @@ MESSAGE_CALLBACK_FUNCTION = Union[
 COMPONENT_CALLBACK_FUNCTION = Union[
     Callable[[ComponentContext], DiscordResponse],
     Callable[[ComponentContext], Awaitable[DiscordResponse]],
+]
+
+
+# modal submit function callback type
+MODALSUBMIT_CALLBACK_FUNCTION = Union[
+    Callable[[ModalSubmitContext], DiscordResponse],
+    Callable[[ModalSubmitContext], Awaitable[DiscordResponse]],
 ]
 
 
@@ -185,6 +199,12 @@ class MessageComponent:
         self._callback = func
 
 
+class ModalSubmit:
+    def __init__(self, custom_id, func: MODALSUBMIT_CALLBACK_FUNCTION) -> None:
+        self.custom_id = custom_id
+        self._callback = func
+
+
 class DisInter(FastAPI):
     def __init__(
         self,
@@ -210,6 +230,9 @@ class DisInter(FastAPI):
         self._button_fallback: COMPONENT_CALLBACK_FUNCTION | None = None
         self._selectmenu_components: Dict[str, MessageComponent] = {}
         self._selectmenu_fallback: COMPONENT_CALLBACK_FUNCTION | None = None
+
+        self._modalsubmit_handlers: Dict[str, ModalSubmit] = {}
+        self._modalsubmit_fallback: MODALSUBMIT_CALLBACK_FUNCTION | None = None
 
         # add custom api router for interactions
         self.add_route(
@@ -359,19 +382,67 @@ class DisInter(FastAPI):
                     status_code=500,
                 )
 
+        if req["type"] == InteractionType.MODAL_SUBMIT:
+            modalsubmit: InteractionModalSubmit = req
+
+            custom_id = modalsubmit["data"]["custom_id"]
+            modal_context = ModalSubmitContext(modalsubmit)
+
+            modal_handler = self._modalsubmit_handlers.get(custom_id)
+            if modal_handler is not None:
+                json = await self._execute_handler(
+                    modal_context, modal_handler._callback
+                )
+                return JSONResponse(json, status_code=200)
+
+            if self._modalsubmit_fallback is not None:
+                json = await self._execute_handler(
+                    modal_context, self._modalsubmit_fallback
+                )
+                return JSONResponse(json, status_code=200)
+
+            # no modalsubmit handler defined set in app
+            return JSONResponse(
+                {"error": "Modal submit wrapper callback function not set."},
+                status_code=500,
+            )
+
     async def _execute_handler(
         self,
-        context: SlashContext | UserContext | MessageContext | ComponentContext,
+        context: SlashContext
+        | UserContext
+        | MessageContext
+        | ComponentContext
+        | ModalSubmitContext,
         callback: SLASH_CALLBACK_FUNCTION
         | USER_CALLBACK_FUNCTION
         | MESSAGE_CALLBACK_FUNCTION
-        | COMPONENT_CALLBACK_FUNCTION,
+        | COMPONENT_CALLBACK_FUNCTION
+        | MODALSUBMIT_CALLBACK_FUNCTION,
     ):
         if asyncio.iscoroutinefunction(callback):
             output = await callback(context)
             return output._to_json()
 
         return callback(context)._to_json()  # type: ignore
+
+    def modalsubmit_handler(self, custom_id: str | None = None):
+        """Add a function handler to a modal component when submitted.
+
+        Args:
+            custom_id (str | None, optional): ID of the modal. Defaults to None.
+        """
+
+        def _modalsubmit(func: MODALSUBMIT_CALLBACK_FUNCTION):
+            if custom_id is None:
+                self._modalsubmit_fallback = func
+                return
+
+            modalsub = ModalSubmit(custom_id=custom_id, func=func)
+            self._modalsubmit_handlers[custom_id] = modalsub
+            return self._modalsubmit_handlers[custom_id]
+
+        return _modalsubmit
 
     def button_component(self, custom_id: str | None = None):
         """Add a function callback to the custom_id of a button component.

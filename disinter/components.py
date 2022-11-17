@@ -258,22 +258,6 @@ class ComponentSelectMenu:
         return json
 
 
-class ComponentActionRows:
-    def __init__(
-        self, components: List[ComponentButton | ComponentSelectMenu | Self]  # type: ignore
-    ) -> None:
-        self.type = 1
-        self.components = components
-
-    def _to_json(self):
-        return {
-            "type": self.type,
-            "components": [i._to_json() for i in self.components],
-        }
-
-
-Components = ComponentButton | ComponentSelectMenu | ComponentActionRows
-
 ComponentTextInputStyle = NewType("ComponentTextInputStyle", int)
 ComponentTextInputStyleShort = ComponentTextInputStyle(1)
 ComponentTextInputStyleParagraph = ComponentTextInputStyle(2)
@@ -300,6 +284,23 @@ class ComponentTextInput(BaseJSON):
         self.required = required
         self.value = value
         self.placeholder = placeholder
+
+
+class ComponentActionRows:
+    def __init__(
+        self, components: List[ComponentButton | ComponentSelectMenu | ComponentTextInput | Self]  # type: ignore
+    ) -> None:
+        self.type = 1
+        self.components = components
+
+    def _to_json(self):
+        return {
+            "type": self.type,
+            "components": [i._to_json() for i in self.components],
+        }
+
+
+Components = ComponentButton | ComponentSelectMenu | ComponentActionRows
 
 
 # class ComponentAttachment:
