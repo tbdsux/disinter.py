@@ -1,13 +1,15 @@
 [tool.poetry]
 name = "disinter"
-version = "0.0.1"
+version = "0.0.2a0"
 description = "A discord interactions library"
 authors = ["TheBoringDude <iamcoderx@gmail.com>"]
 readme = "README.md"
 packages = [{include = "disinter"}]
+repository = "https://github.com/TheBoringDude/disinter.py"
+documentation = "https://github.com/TheBoringDude/disinter.py/tree/main/docs"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.9"
 fastapi = "^0.85.1"
 requests = "^2.28.1"
 discord-interactions = "^0.4.0"

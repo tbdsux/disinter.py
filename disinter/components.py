@@ -1,4 +1,6 @@
-from typing import Any, Dict, List, NewType
+from __future__ import annotations
+
+from typing import Any, Dict, List, NewType, Union
 
 from typing_extensions import Self
 
@@ -300,7 +302,7 @@ class ComponentActionRows:
         }
 
 
-Components = ComponentButton | ComponentSelectMenu | ComponentActionRows
+Components = Union[ComponentButton, ComponentSelectMenu, ComponentActionRows]
 
 
 # class ComponentAttachment:

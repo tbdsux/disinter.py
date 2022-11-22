@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 class ChannelType:
     GuildText = 0
     DM = 1

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Dict, Generic, List, TypeVar
 
 from disinter.components import Components, Embed

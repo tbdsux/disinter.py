@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 # https://discord.com/developers/docs/interactions/message-components#component-object-component-types
 class ComponentTypes:
     ActionRow = 1
