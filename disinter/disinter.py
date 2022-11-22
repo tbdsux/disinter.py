@@ -420,11 +420,16 @@ class DisInter(FastAPI):
         | COMPONENT_CALLBACK_FUNCTION
         | MODALSUBMIT_CALLBACK_FUNCTION,
     ):
+        output = None
+
         if asyncio.iscoroutinefunction(callback):
             output = await callback(context)
-            return output._to_json()
+        else:
+            output = callback(context)  # type: ignore
 
-        return callback(context)._to_json()  # type: ignore
+        assert isinstance(output, DiscordResponse)
+
+        return output._to_json()  # type: ignore
 
     def modalsubmit_handler(self, custom_id: str | None = None):
         """Add a function handler to a modal component when submitted.
