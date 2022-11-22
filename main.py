@@ -1,29 +1,3 @@
-# disinter.py
-
-Discord bot to respond to interactions via webhook.
-
-## Usage
-
-(Still trying to update...)
-
-Check out some of the [examples](../examples/)
-
-- Required environment variables or presets
-
-```python
-import os
-
-TOKEN = os.environ.get("TOKEN", "") # your bot token
-APPLICATION_ID = os.environ.get("APPLICATION_ID", "") # application id of the bot app
-GUILDS = os.environ.get("GUILD", "").split(",") # guilds you want the bot to register to,\
-                                                # if None it will register as global command
-PUBLIC_KEY = os.environ.get("PUBLIC_KEY", "") # the bot's public key
-```
-
-- Create and manage the bot in a `main.py` or so...
-
-```python
-# main.py
 import datetime
 import os
 
@@ -36,12 +10,7 @@ from disinter.components import (
     Embed,
     EmbedField,
 )
-from disinter.context import (
-    ComponentContext,
-    MessageContext,
-    SlashContext,
-    UserContext,
-)
+from disinter.context import ComponentContext, MessageContext, SlashContext, UserContext
 
 TOKEN = os.environ.get("TOKEN", "")
 APPLICATION_ID = os.environ.get("APPLICATION_ID", "")
@@ -116,51 +85,3 @@ def sampleclick(ctx: ComponentContext):
 )
 async def mention(ctx: SlashContext):
     return ctx.reply("hello there!")
-
-```
-
-- Create a separate `register.py` and call it whenever you have changes in your app commands.
-
-```python
-# register.py
-
-from main import app
-
-app._sync_commands()
-```
-
-- Run the server. `disinter.py` wraps over `FastAPI` so you can run it asgi server like `uvicorn`
-
-```sh
-uvicorn main:app --reload
-```
-
-### Development
-
-If you have your app running with `uvicorn`, you can use `ngrok` (install it first) to reverse proxy and use it to test your bot.
-
-```sh
-ngrok http 8000 # replace with the port your asgi server is running in
-```
-
-- Copy your forwarding url
-
-  ![](./ngrok-proxy-url.png)
-
-- Update your `Interactions Endpoint Url` in your discord app dashboard
-
-  ![](./endpoint.png)
-
-You can now enjoy developing your bot :tada: !
-
-## Not implemented features
-
-- File attachments
-- Autocomplete
-- ~~Modals~~
-- Deferred response
-- etc...
-
-##
-
-**&copy; 2022 | TheBoringDude**
