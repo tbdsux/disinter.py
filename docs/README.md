@@ -1,6 +1,6 @@
 # disinter.py
 
-Discord bot to respond to interactions via webhook.
+A discord interactions library to receieve interactions via HTTP Posts with an API endpoint.
 
 ## Usage
 

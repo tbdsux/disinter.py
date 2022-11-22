@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "disinter-py"
-version = "0.1.0"
-description = ""
+name = "disinter"
+version = "0.0.1"
+description = "A discord interactions library"
 authors = ["TheBoringDude <iamcoderx@gmail.com>"]
 readme = "README.md"
 packages = [{include = "disinter"}]

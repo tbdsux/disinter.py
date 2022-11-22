@@ -1,7 +1,7 @@
 <div align=center>
 <h1>disinter.py</h1>
 
-Discord bot to respond to interactions via webhook.
+A discord interactions library to receieve interactions via HTTP Posts with an API endpoint.
 
 </div>
 
@@ -12,6 +12,8 @@ pip3 install disinter
 ```
 
 ## [Usage](./docs/README.md)
+
+Library is still under heavy development and expect to have bugs and errors on the way.
 
 ##
 
