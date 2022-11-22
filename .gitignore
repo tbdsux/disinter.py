@@ -1,7 +1,9 @@
+# python cache
 __pycache__
 .mypy_cache
 
+# build output
+dist
+
+# environment variables during dev
 .env
-register.py 
-test.py
-commands.json
