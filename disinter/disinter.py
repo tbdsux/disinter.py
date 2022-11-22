@@ -580,7 +580,14 @@ class DisInter(FastAPI):
 
         return cmd_json, cmd_keys
 
-    def _sync_commands(self):
+    def sync_commands(self):
+        """
+        Sync commands to the set guilds in the app.
+
+        If `self.guilds` is `None`, it will register the defined app commands as global commands.
+
+        Note: `None != []`
+        """
         commands, cmd_keys = self._parse_commands()
 
         if self.guilds is None:
