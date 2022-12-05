@@ -62,6 +62,36 @@ async def ping(ctx: SlashContext):
 uvicorn main:bot --reload
 ```
 
+### Registering commands
+
+It is best to register your commands manually whenever you have new commands added to avoid frequent api request to update commands.
+
+- Separate file
+
+  ```python
+  # register.py
+
+  # import your app instance
+  from .main import bot # / app
+
+  # This will still require you to have the required environment variables present during runtime.
+  bot.sync_commands() # call the sync command
+  ```
+
+- App startup
+
+  We utilize the `on_event` decorator from fastapi which executes whenever the app starts.
+
+  ```python
+  @bot.on_event("startup")
+  def start():
+      try:
+          # register the commands
+          bot.sync_commands()
+      except Exception as e:
+          print(e)
+  ```
+
 ### Development
 
 If you have your app running with `uvicorn`, you can use `ngrok` (install it first) to reverse proxy and use it to test your bot.
