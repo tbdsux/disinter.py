@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "disinter"
-version = "0.0.2a0"
+version = "0.0.2a1"
 description = "A discord interactions library"
 authors = ["TheBoringDude <iamcoderx@gmail.com>"]
 readme = "README.md"
