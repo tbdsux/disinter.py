@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import Any, Awaitable, Callable, Dict, List, Union
 
 from discord_interactions import InteractionResponseType, InteractionType, verify_key
@@ -210,19 +211,46 @@ class ModalSubmit:
 class DisInter(FastAPI):
     def __init__(
         self,
-        token: str,
-        application_id: int | str,
-        public_key: str,
+        token: str | None = None,
+        application_id: str | None = None,
+        public_key: str | None = None,
         guilds: List[str] | None = None,
     ) -> None:
+        """DisInter bot library instance.
+
+        Args:
+            `token` (str | None, optional): Bot Token. Defaults to `os.environ["TOKEN"]`.
+            `application_id` (str | None, optional): Discord app Application ID. Defaults to `os.environ["APPLICATION_ID"]`.
+            `public_key` (str | None, optional): Discord app Public Key. Defaults to `os.environ["PUBLIC_KEY"]`.
+            `guilds` (List[str] | None, optional): List of Guilds to register the bot. Defaults to `None`. If `None`, bot commands will be registered as global.
+        """
+
         super().__init__()
 
-        self.token = token
-        self.application_id = application_id
-        self.public_key = public_key
+        # get and check token
+        _token = os.environ.get("TOKEN", "")
+        if token is not None:
+            _token = token
+        assert _token != "", "Missing Bot TOKEN"
+
+        # get and check application_id
+        _application_id = os.environ.get("APPLICATION_ID", "")
+        if application_id is not None:
+            _application_id = application_id
+        assert _application_id != "", "Missing discord app Application ID"
+
+        # get and check public_key
+        _public_key = os.environ.get("PUBLIC_KEY", "")
+        if public_key is not None:
+            _public_key = public_key
+        assert _public_key != "", "Missing discord app Public Key"
+
+        self.token = _token
+        self.application_id = _application_id
+        self.public_key = _public_key
         self.guilds = guilds
 
-        self.api = DiscordAPI(token, application_id)
+        self.api = DiscordAPI(_token, _application_id)
 
         self._slash_commands: Dict[str, SlashCommand] = {}
         self._user_commands: Dict[str, UserCommand] = {}
